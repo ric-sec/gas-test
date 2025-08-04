@@ -68,16 +68,12 @@ jobs:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
           restore-keys: ${{ runner.os }}-nuget
-      - name: Install dependencies
-        run: dotnet restore
-        env:
-          ADO_PAT: ${{ secrets.ADO_PKGS_READ_PAT }}
 
       - name: Build, test and analyze
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ~/sonar-scanner/dotnet-sonarscanner begin /k:"${{ env.REPOSITORY_NAME }}" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="${{ vars.SONAR_HOST_URL }}" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml /d:sonar.scanner.opts=-Xmx6G /d:sonar.dotnet.enable.concurrent.execution=true
-          dotnet build --configuration Release --no-restore
+          dotnet build --configuration Release
           ~/dotnet-coverage/dotnet-coverage collect 'dotnet test -c Release' -f xml  -o 'coverage.xml'
           ~/sonar-scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
