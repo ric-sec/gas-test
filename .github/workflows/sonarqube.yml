@@ -40,8 +40,6 @@ jobs:
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         run: |
           dotnet tool update dotnet-sonarscanner --tool-path ~/sonar-scanner
-        env:
-          ADO_PAT: ${{ secrets.ADO_PKGS_READ_PAT }}
 
       - name: Cache Dotnet coverage
         id: cache-dotnet-coverage
@@ -54,8 +52,6 @@ jobs:
         if: steps.cache-dotnet-coverage.outputs.cache-hit != 'true'
         run: |
           dotnet tool update dotnet-coverage --tool-path ~/dotnet-coverage
-        env:
-          ADO_PAT: ${{ secrets.ADO_PKGS_READ_PAT }}
 
       - uses: actions/checkout@v4
         with:

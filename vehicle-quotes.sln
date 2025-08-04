@@ -9,8 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VehicleQuotes.CreateUser", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VehicleQuotes.RazorTemplates", "VehicleQuotes.RazorTemplates\VehicleQuotes.RazorTemplates.csproj", "{1664C7E6-C879-48B1-8F7A-1A21FE3EB704}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VehicleQuotes.IntegrationTests", "VehicleQuotes.IntegrationTests\VehicleQuotes.IntegrationTests.csproj", "{342E7629-6098-40E5-8E7C-27DA2B4C6CD9}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VehicleQuotes.UnitTests", "VehicleQuotes.UnitTests\VehicleQuotes.UnitTests.csproj", "{681ED6D1-AA4B-4EC0-939F-911256CA3B03}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VehicleQuotes.AdminPortal", "VehicleQuotes.AdminPortal\VehicleQuotes.AdminPortal.csproj", "{8375FF09-47DB-48B5-8777-8A89C145BC74}"
