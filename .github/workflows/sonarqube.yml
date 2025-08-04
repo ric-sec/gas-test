@@ -1,49 +1,84 @@
-name: Build
-
+name: SonarQube Scanner
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize, reopened]
-
+  workflow_call:
+    secrets:
+      SONAR_TOKEN:
+        required: true
+      ADO_PKGS_READ_PAT:
+        required: true
+env:
+  SONAR_HOST_URL: https://sonarqube.dsp-online.be/
 jobs:
   build:
-    name: Build and analyze
-    runs-on: windows-latest
-    
+    name: Scan
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: 17
-          distribution: 'zulu' # Alternative distribution options are available.
+          distribution: 'zulu'
+          java-version: '17'
+
       - name: Cache SonarQube packages
         uses: actions/cache@v4
         with:
-          path: ~\.sonar\cache
+          path: ~/sonar-cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
+
       - name: Cache SonarQube scanner
         id: cache-sonar-scanner
         uses: actions/cache@v4
         with:
-          path: .\.sonar\scanner
+          path: ~/sonar-scanner
           key: ${{ runner.os }}-sonar-scanner
           restore-keys: ${{ runner.os }}-sonar-scanner
       - name: Install SonarQube scanner
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
-        shell: powershell
         run: |
-          New-Item -Path .\.sonar\scanner -ItemType Directory
-          dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
-      - name: Build and analyze
-        shell: powershell
+          dotnet tool update dotnet-sonarscanner --tool-path ~/sonar-scanner
+        env:
+          ADO_PAT: ${{ secrets.ADO_PKGS_READ_PAT }}
+
+      - name: Cache Dotnet coverage
+        id: cache-dotnet-coverage
+        uses: actions/cache@v4
+        with:
+          path: ~/dotnet-coverage
+          key: ${{ runner.os }}-dotnet-coverage
+          restore-keys: ${{ runner.os }}-dotnet-coverage
+      - name: Install Dotnet coverage
+        if: steps.cache-dotnet-coverage.outputs.cache-hit != 'true'
         run: |
-          .\.sonar\scanner\dotnet-sonarscanner begin /k:"ric-sec_gas-test_e64e40f2-291b-47b9-a57d-75572434356e" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="${{ vars.SONAR_HOST_URL }}"
-          dotnet build
-          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          dotnet tool update dotnet-coverage --tool-path ~/dotnet-coverage
+        env:
+          ADO_PAT: ${{ secrets.ADO_PKGS_READ_PAT }}
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Cache .NET packages
+        id: cache-nuget-packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget
+      - name: Install dependencies
+        run: dotnet restore
+        env:
+          ADO_PAT: ${{ secrets.ADO_PKGS_READ_PAT }}
+
+      - name: Build, test and analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ~/sonar-scanner/dotnet-sonarscanner begin /k:"${{ env.REPOSITORY_NAME }}" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="${{ env.SONAR_HOST_URL }}" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml /d:sonar.scanner.opts=-Xmx6G /d:sonar.dotnet.enable.concurrent.execution=true
+          dotnet build --configuration Release --no-restore
+          ~/dotnet-coverage/dotnet-coverage collect 'dotnet test -c Release' -f xml  -o 'coverage.xml'
+          ~/sonar-scanner/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
