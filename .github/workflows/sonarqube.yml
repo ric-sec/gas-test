@@ -1,13 +1,12 @@
 name: SonarQube Scanner
 on:
-  workflow_call:
-    secrets:
-      SONAR_TOKEN:
-        required: true
-      ADO_PKGS_READ_PAT:
-        required: true
-env:
-  SONAR_HOST_URL: https://sonarqube.dsp-online.be/
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+    
 jobs:
   build:
     name: Scan
